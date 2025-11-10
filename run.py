@@ -123,6 +123,76 @@ def SetServoOn(nBdID: int) -> bool:
     return True
 
 
+
+
+def MoveAbsPos(nBdID: int, nAbsPos, nVelocity) -> bool:
+
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	#~~ In this function,												~~
+	#~~ please modify the value depending on the product you are using.	~~
+	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    # Move AxisAbsPos
+
+    # Move the motor by 0 pulse (target position: Absolute position)
+   
+
+    print("---------------------------")
+    print("[Abs Mode] Move Motor!")
+
+    if FAS_MoveSingleAxisAbsPos(nBdID, nAbsPos, nVelocity) != FMM_OK:
+        print("Function(FAS_MoveSingleAxisAbsPos) was failed.")
+        return False
+
+    # Check the Axis status until motor stops and the Inposition value is checked
+    while True:
+        time.sleep(0.001)
+        status_result, axis_status = FAS_GetAxisStatus(nBdID)
+        if status_result != FMM_OK:
+            print("Function(FAS_GetAxisStatus) was failed.")
+            return False
+
+        if not (axis_status & EZISERVO2_AXISSTATUS.FFLAG_MOTIONING) and (
+            axis_status & EZISERVO2_AXISSTATUS.FFLAG_INPOSITION
+        ):
+            break
+
+    return True
+
+def SetServoOff(nBdID: int) -> bool:
+    """
+    Turn servo OFF for the given board ID.
+    """
+
+    # 현재 축 상태 읽기
+    status_result, axis_status = FAS_GetAxisStatus(nBdID)
+    if status_result != FMM_OK:
+        print("Function(FAS_GetAxisStatus) failed.")
+        return False
+
+    # Servo가 켜져 있으면 끄기
+    if (axis_status & EZISERVO2_AXISSTATUS.FFLAG_SERVOON) != 0:
+        # Servo Disable
+        if FAS_ServoEnable(nBdID, 0) != FMM_OK:
+            print("Function(FAS_ServoEnable) failed.")
+            return False
+
+        # OFF 될 때까지 대기
+        while (axis_status & EZISERVO2_AXISSTATUS.FFLAG_SERVOON) != 0:
+            time.sleep(0.001)
+            status_result, axis_status = FAS_GetAxisStatus(nBdID)
+            if status_result != FMM_OK:
+                print("Function(FAS_GetAxisStatus) failed.")
+                return False
+
+            if (axis_status & EZISERVO2_AXISSTATUS.FFLAG_SERVOON) == 0:
+                print("Servo OFF")
+
+    else:
+        print("Servo is already OFF")
+
+    return True
+
 def SetOriginParameter(nBdID: int) -> bool:
 
 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -135,9 +205,9 @@ def SetOriginParameter(nBdID: int) -> bool:
     nOrgSearchSpeed = 50000
     nOrgAccDecTime = 50
     nOrgMethod = (
-        0  # Origin Method = 2 is 'Limit Origin' in the Ezi-SERVOII Plus-E model
+        2  # Origin Method = 2 is 'Limit Origin' in the Ezi-SERVOII Plus-E model
     )
-    nOrgDir = CW
+    nOrgDir = CCW
     nOrgOffset = 0
     nOrgPositionSet = 0
     nOrgTorqueRatio = 50
@@ -173,7 +243,7 @@ def SetOriginParameter(nBdID: int) -> bool:
     if FAS_SetParameter(nBdID, SERVO2_ORGTORQUERATIO, nOrgTorqueRatio) != FMM_OK:
         print("Function(FAS_SetParameter[SERVO2_ORGTORQUERATIO]) was failed.")
         return False
-
+    print("origin paramenter set successfully")
     return True
 
 
@@ -249,116 +319,8 @@ def updateAbsPos(nBdID: int, targetAbsPos: int) -> bool:
 
 
 
-
-
-
-# def MoveAbsPos(nBdID: int, targetAbsPos: int) -> bool:
-
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 	#~~ In this function,												~~
-# 	#~~ please modify the value depending on the product you are using.	~~
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-#     # Move AxisAbsPos
-
-#     # Move the motor by 0 pulse (target position: Absolute position)
-#     nAbsPos = targetAbsPos
-#     nVelocity = MTSPEED
-
-#     print("---------------------------")
-#     print("[Abs Mode] Move Motor!")
-
-#     if FAS_MoveSingleAxisAbsPos(nBdID, nAbsPos, nVelocity) != FMM_OK:
-#         print("Function(FAS_MoveSingleAxisAbsPos) was failed.")
-#         return False
-
-#     # Check the Axis status until motor stops and the Inposition value is checked
-#     while True:
-#         time.sleep(0.001)
-#         status_result, axis_status = FAS_GetAxisStatus(nBdID)
-#         if status_result != FMM_OK:
-#             print("Function(FAS_GetAxisStatus) was failed.")
-#             return False
-
-#         if not (axis_status & EZISERVO2_AXISSTATUS.FFLAG_MOTIONING) and (
-#             axis_status & EZISERVO2_AXISSTATUS.FFLAG_INPOSITION
-#         ):
-#             break
-
-#     return True
-
-
-# def PosAbsOvrride(nBdID: int) -> bool:
-
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# 	#~~ In this function,												~~
-# 	#~~ please modify the value depending on the product you are using.	~~
-# 	#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-#     # Move AxisAbsPos & PositionAbsOverride
-#     lVelocity = 40000
-#     lIncEndPos = 0
-#     lActualPos = 0
-#     lAbsPos = 0
-#     lChangePos = 0
-
-#     status_result, lIncEndPos = FAS_GetActualPos(nBdID)
-#     if status_result != FMM_OK:
-#         print("Function(FAS_GetActualPos) was failed.")
-#         return False
-
-#     print("---------------------------")
-
-#     # 1. Move Command
-#     # Move the motor by ((lIncEndPos)* 1/ 4) pulse (target position : Absolute position)
-#     lAbsPos = lIncEndPos // 4
-
-#     if FAS_MoveSingleAxisAbsPos(nBdID, lAbsPos, lVelocity) != FMM_OK:
-#         print("Function(FAS_MoveSingleAxisAbsPos) was failed.")
-#         return False
-#     print("[ABS Mode] Move Motor Start!")
-
-#     # 2. Check Condition
-#     # Check current position
-#     while True:
-#         time.sleep(0.001)
-
-#         status, lActualPos = FAS_GetActualPos(nBdID)
-#         if status != FMM_OK:
-#             print("Function(FAS_GetActualPos) was failed.")
-#             break
-
-#         if lActualPos < (lIncEndPos / 2):
-#             break
-
-#     # 3. Change Position
-#     # if the current position falls below half the INC End position, change the target position to zero.
-#     lChangePos = 400000
-#     if FAS_PositionAbsOverride(nBdID, lChangePos) != FMM_OK:
-#         print("Function(FAS_PositionAbsOverride) was failed.")
-#         return False
-#     else:
-#         print(
-#             "Before Target Position: %d[pulse] / Change Target Position: %d[pulse]"
-#             % (lAbsPos, lChangePos)
-#         )
-
-#     # 4. Confirm Move Complete
-#     # Check the Axis status until motor stops and the Inposition value is checked
-#     while True:
-#         time.sleep(0.001)
-#         status_result, axis_status = FAS_GetAxisStatus(nBdID)
-#         if status_result != FMM_OK:
-#             print("Function(FAS_GetAxisStatus) was failed.")
-#             return False
-
-#         if not (axis_status & EZISERVO2_AXISSTATUS.FFLAG_MOTIONING) and (
-#             axis_status & EZISERVO2_AXISSTATUS.FFLAG_INPOSITION
-#         ):
-#             break
-
-#     return True
 def calculateTargetAbsPositionAtTime(t:float) -> float:
+    return 10000
 
     # max_pos = 200000
     match t:
@@ -389,65 +351,124 @@ def plotChart(times,targetPositions,currentPositions):
     plt.show()
     plt.savefig("logs/plot_position.png")
 
+
+
+
+def checkConnection(nBdIDPosition,ipPosition,nBdIDAngular,ipAngular):
+    
+
+    # Device Connect
+    if not Connect(TCP, nBdIDPosition,ipPosition) or not Connect(TCP, nBdIDAngular, ipAngular):
+        return False
+
+    # Drive Error Check
+    if not CheckDriveErr(nBdIDPosition) or not CheckDriveErr(nBdIDAngular):
+        input("Press Enter to exit...")
+        return False
+
+    # ServoOn
+    if not SetServoOn(nBdIDPosition) or not SetServoOn(nBdIDAngular):
+        input("Press Enter to exit...")
+        return False
+
+    return True
+
+def initializePositionMotor(nBdIDPosition):
+    
+       # Set Origin Parameter
+    if not SetOriginParameter(nBdIDPosition):
+       return False
+
+    # Act Origin Search Function
+    if not OriginSearch(nBdIDPosition):
+        input("Press Enter to exit...")
+        return False
+    return True
+
+def exitProcess(nBdIDPosition,nBdIDAngular):
+    SetServoOff(nBdIDPosition)
+    SetServoOff(nBdIDAngular)
+    FAS_Close(nBdIDPosition)
+    FAS_Close(nBdIDAngular)
+    exit(1)
+
+def initialJointing(nBdIDPosition,nBdIDAngular,positionMotorInitialLocation,angularMotorInitialJointingSpeed):
+
+    if FAS_MoveVelocity(nBdIDAngular,angularMotorInitialJointingSpeed,CW) != FMM_OK:
+        print("ang motor can not rotate")
+        return False
+    
+    if not MoveAbsPos(nBdID=nBdIDPosition, nAbsPos=positionMotorInitialLocation, nVelocity=MTSPEED):
+    # if FAS_MoveSingleAxisAbsPos(nBdIDPosition,positionMotorInitialLocation,MTSPEED) != FMM_OK:
+        return False
+    if  FAS_MoveStop(nBdIDAngular) != FMM_OK:
+        print("cancel failed")
+        return False
+    return True
+
+
+
 def main():
+
     nBdIDPosition = 0
     ipPosition = [192,168,0,3]
     nBdIDAngular = 1
     ipAngular = [192,168,0,2]
+
+    positionMotorInitialLocation = 268000
+    angularMotorInitialJointingSpeed = 2000
+
     currentTime = 0
     dt = 0.1
     currentPositions = []
     targetPositions = []
     times = []
 
-    # Device Connect
-    if not Connect(TCP, nBdIDPosition,ipPosition) or not Connect(TCP, nBdIDAngular, ipAngular):
-        input("Press Enter to exit...")
-        exit(1)
+    if not checkConnection(nBdIDPosition=nBdIDPosition,ipPosition=ipPosition,nBdIDAngular=nBdIDAngular,ipAngular=ipAngular, ):
+        input("motor/driver connection check failed")
+        exitProcess(nBdIDPosition,nBdIDAngular)
 
-    # Drive Error Check
-    if not CheckDriveErr(nBdIDPosition) or not CheckDriveErr(nBdIDAngular):
-        input("Press Enter to exit...")
-        exit(1)
+    if not initializePositionMotor(nBdIDPosition=nBdIDPosition):
+        input("position motor initialization failed.")
+        exitProcess(nBdIDPosition,nBdIDAngular)
 
-    # ServoOn
-    if not SetServoOn(nBdIDPosition) or not SetServoOn(nBdIDAngular):
-        input("Press Enter to exit...")
-        exit(1)
+    if not initialJointing(nBdIDPosition=nBdIDPosition,
+                           nBdIDAngular=nBdIDAngular,
+                            positionMotorInitialLocation= positionMotorInitialLocation,
+                            angularMotorInitialJointingSpeed= angularMotorInitialJointingSpeed):
+        input("initialJointing failed")
+        exitProcess(nBdIDPosition,nBdIDAngular)
+    # time.sleep(5)
+
 
     
-       # Set Origin Parameter
-    if not SetOriginParameter(nBdIDPosition)or not SetOriginParameter(nBdIDAngular):
-        input("Press Enter to exit...")
-        exit(1)
 
-    # Act Origin Search Function
-    if not OriginSearch(nBdID):
-        input("Press Enter to exit...")
-        exit(1)
 
         
 
     # Move AxisAbsPos & PositionAbsOverride
     
-    for i in range(0,100):
+    # for i in range(0,20):
 
-        targetAbsPos = round(calculateTargetAbsPositionAtTime(t=currentTime))
+    #     targetAbsPos = round(calculateTargetAbsPositionAtTime(t=currentTime))
 
-        if not updateAbsPos(nBdID,targetAbsPos=targetAbsPos):
-            input("updated failed: Press Enter to exit...")
-            exit(1)
-        times.append(currentTime)
-        currentPosition = getCurrentPosition(nBdID)
-        currentPositions.append(currentPosition)
-        targetPositions.append(targetAbsPos)
+    #     if not updateAbsPos(nBdIDPosition,targetAbsPos=targetAbsPos):
+    #         input("updated failed: Press Enter to exit...")
+    #         exit(1)
+    #     times.append(currentTime)
+    #     currentPosition = getCurrentPosition(nBdIDPosition)
+    #     currentPositions.append(currentPosition)
+    #     targetPositions.append(targetAbsPos)
 
-        currentTime += dt
-        time.sleep(dt)
+    #     currentTime += dt
+    #     time.sleep(dt)
 
     # Connection Close
     print("fas close called")
-    FAS_Close(nBdID)
+    SetServoOff(nBdIDPosition)
+    SetServoOff(nBdIDAngular)
+    FAS_Close(nBdIDPosition)
+    FAS_Close(nBdIDAngular)
     plotChart(times,targetPositions,currentPositions)
 
 

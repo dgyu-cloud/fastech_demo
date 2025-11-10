@@ -56,7 +56,7 @@ def Connect(nCommType: int, nBdID: int, ip: list) -> bool:
         bSuccess = False
 
     if bSuccess:
-        print("Connected successfully.")
+        print("Connected successfully!.")
 
     return bSuccess
 
